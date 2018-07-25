@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">FingerTap</string>
+
+    <string name="tap_header_right_hand">Tap the buttons using your RIGHT hand.</string>
+    <string name="tap_header_left_hand">Tap the buttons using your LEFT hand.</string>
+</resources>
