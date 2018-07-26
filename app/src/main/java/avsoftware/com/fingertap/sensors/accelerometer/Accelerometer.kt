@@ -23,5 +23,5 @@ class Accelerometer(context: Context, sampleFrequencyUs: Int = SensorManager.SEN
 }
 
 data class  AccelerometerData( val x: Float, val y: Float, val z: Float, val timestamp: Long ) : Recordable {
-    override fun getBytes() = "{\"y\":${y.toBigDecimal()}, \"timestamp\":$timestamp, \"z\":${z.toBigDecimal()} \"x\":${x.toBigDecimal()} }, ".toByteArray()
+    override fun getRecordableString() = "{\"y\":${y.toBigDecimal()}, \"timestamp\":$timestamp, \"z\":${z.toBigDecimal()}, \"x\":${x.toBigDecimal()} }"
 }
