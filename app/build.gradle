@@ -51,6 +51,4 @@ dependencies {
     implementation 'com.jakewharton.timber:timber:4.6.1'
     // RX Sensors
     implementation 'com.github.pwittchen:reactivesensors-rx2:0.2.0'
-    // RX Location
-    implementation 'com.github.zellius:rxlocationmanager-rxjava2:1.0.0'
 }

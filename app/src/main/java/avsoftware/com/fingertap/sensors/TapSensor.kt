@@ -11,7 +11,7 @@ import io.reactivex.Observable
 import io.reactivex.functions.BiFunction
 import io.reactivex.subjects.BehaviorSubject
 
-class TapSensor(){
+class TapSensor {
 
     val tapOneRelay: Relay<MotionEvent> = PublishRelay.create()
     val tapTwoRelay: Relay<MotionEvent> = PublishRelay.create()
@@ -23,13 +23,15 @@ class TapSensor(){
         ).toFlowable(BackpressureStrategy.BUFFER)
     }
 
-    private fun createMotionToTapEventPipeline( buttonId: Int, motionEvents: Observable<MotionEvent>  ): Observable<TapData> {
+    private fun createMotionToTapEventPipeline( buttonId: Int, motionEvents: Observable<MotionEvent> ): Observable<TapData> {
 
         val currentTapTime: BehaviorSubject<Long> = BehaviorSubject.createDefault(0L)
+        val startTime: BehaviorSubject<Long> = BehaviorSubject.createDefault(0L)
 
-        // Down Event Time is Storex in currentTapTime
+        // Down Event Time is Stored in currentTapTime
         val downEvents = motionEvents.filter { it.action == MotionEvent.ACTION_DOWN }
-                .doOnNext { currentTapTime.onNext(SystemClock.currentThreadTimeMillis()) }
+                .doOnSubscribe{ startTime.onNext(System.currentTimeMillis()) }
+                .doOnNext { currentTapTime.onNext(System.currentTimeMillis()) }
                 .ignoreElements()
 
         // Up Event is mapped to TapData instance - downTime property taken from currentTapTime
@@ -42,6 +44,8 @@ class TapSensor(){
         return Observable.merge(downEvents.toObservable(), upEvents)
     }
 }
+
+class
 
 // CLASS to store tap data
 data class TapData(var iButton: Int, var fStartTime: Float, var fDuration: Float, var x: Float, var y: Float) : Recordable {

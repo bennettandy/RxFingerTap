@@ -25,7 +25,9 @@ class FileEnvelope(val header: String = "", val footer: String = "")
 
 class FileRecorderImpl : FileRecorder {
 
-    var stopFlag: Relay<Boolean> = BehaviorRelay.createDefault(false)
+    private var stopFlag: Relay<Boolean> = BehaviorRelay.createDefault(false)
+
+    fun stopRecording() = stopFlag.accept(true)
 
     override fun writeToFile(recordable: Flowable<out Recordable>, outputDirectory: File, filename: String, envelope: FileEnvelope): Single<RecordedFile> {
 

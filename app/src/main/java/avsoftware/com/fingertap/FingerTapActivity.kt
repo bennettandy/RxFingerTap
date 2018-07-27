@@ -27,12 +27,23 @@ class FingerTapActivity : AppCompatActivity() {
         val binding = ActivityFingerTapBinding.inflate(LayoutInflater.from(this))
 
         binding.viewModel = viewModel
-        setContentView(binding.root)
+        binding.activity = this
 
+        setContentView(binding.root)
     }
 
     override fun onStart() {
         super.onStart()
+
+
+        // Build Tap Event Recorder
+
+
+
+
+
+
+
 
         val accelerometer = Accelerometer(this)
 
@@ -91,12 +102,19 @@ class FingerTapActivity : AppCompatActivity() {
         // Stop the accelerometer recorder after time delay
         disposable.add(
                 Observable.just(true).delay(10, TimeUnit.SECONDS)
-                        .doOnNext { flag -> recorderAccelerometer.stopFlag.accept(flag) }
+                        .doOnNext { recorderAccelerometer.stopRecording() }
                         .doOnNext { Timber.d("Stop Triggered") }
                         .subscribe()
         )
 
+    }
 
+    fun startTest() {
+        Timber.d("Start Test Clicked")
+        disposable.add(viewModel.startTest
+                .doOnSubscribe { Timber.d("Subscribed") }
+                .doOnComplete { Timber.d("Completed") }
+                .subscribe())
     }
 
     override fun onStop() {
