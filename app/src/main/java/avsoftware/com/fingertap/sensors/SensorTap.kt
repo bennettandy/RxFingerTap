@@ -2,7 +2,6 @@ package avsoftware.com.fingertap.sensors
 
 import android.view.MotionEvent
 import android.view.View
-import avsoftware.com.fingertap.sensors.accelerometer.TapData
 import io.reactivex.subjects.PublishSubject
 
 

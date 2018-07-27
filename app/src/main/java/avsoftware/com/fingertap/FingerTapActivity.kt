@@ -7,11 +7,8 @@ import avsoftware.com.fingertap.databinding.ActivityFingerTapBinding
 import avsoftware.com.fingertap.recorder.FileEnvelope
 import avsoftware.com.fingertap.recorder.FileRecorderImpl
 import avsoftware.com.fingertap.recorder.RecordedFile
-import avsoftware.com.fingertap.sensors.SensorTap
-import avsoftware.com.fingertap.sensors.accelerometer.Accelerometer
-import avsoftware.com.fingertap.sensors.accelerometer.TapData
-import avsoftware.com.fingertap.sensors.accelerometer.TapSensor
-import io.reactivex.BackpressureStrategy
+import avsoftware.com.fingertap.sensors.Accelerometer
+import avsoftware.com.fingertap.sensors.TapData
 import io.reactivex.Flowable
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
@@ -28,7 +25,6 @@ class FingerTapActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         val binding = ActivityFingerTapBinding.inflate(LayoutInflater.from(this))
-
 
         binding.viewModel = viewModel
         setContentView(binding.root)
@@ -54,14 +50,14 @@ class FingerTapActivity : AppCompatActivity() {
 
 
 
-
-
 //        val tapData: Flowable<SensorTap.TapData> = Flowable.range(100, 100)
 //                .map { SensorTap.TapData(1, it.toFloat(), it*2.toFloat(), 100f, 200f) }
 //                .doOnNext { Timber.d("Tap Data: $it") }
 
         // Tap Events Pipeline
-        val tapEventPipeline: Flowable<TapData> = viewModel.tapDataPipeline.take(20, TimeUnit.SECONDS)
+        val tapEventPipeline: Flowable<TapData> = viewModel.tapDataPipeline
+                .take(20, TimeUnit.SECONDS)
+                .doOnNext{ Timber.d("Tap Event $it") }
 
         // Tap Event Recorder
         val recorderTaps = FileRecorderImpl()

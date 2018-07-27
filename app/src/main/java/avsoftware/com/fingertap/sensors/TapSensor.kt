@@ -1,8 +1,8 @@
-package avsoftware.com.fingertap.sensors.accelerometer
+package avsoftware.com.fingertap.sensors
 
 import android.os.SystemClock
 import android.view.MotionEvent
-import avsoftware.com.fingertap.sensors.Recordable
+import avsoftware.com.fingertap.recorder.Recordable
 import com.jakewharton.rxrelay2.PublishRelay
 import com.jakewharton.rxrelay2.Relay
 import io.reactivex.BackpressureStrategy

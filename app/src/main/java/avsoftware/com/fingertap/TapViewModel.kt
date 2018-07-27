@@ -6,15 +6,18 @@ import android.databinding.ObservableBoolean
 import android.databinding.ObservableInt
 import android.view.MotionEvent
 import android.widget.ImageView
-import avsoftware.com.fingertap.sensors.accelerometer.TapData
-import avsoftware.com.fingertap.sensors.accelerometer.TapSensor
+import avsoftware.com.fingertap.sensors.TapData
+import avsoftware.com.fingertap.sensors.TapSensor
 import com.jakewharton.rxrelay2.Relay
 import io.reactivex.Flowable
 
 class TapViewModel {
 
+    val testIsRunning: ObservableBoolean = ObservableBoolean(false)
+    
     val LEFT_BUTTON_ID = 100;
     val RIGHT_BUTTON_ID = 200;
+
     val tapSensor = TapSensor()
 
     val tapOneRelay: Relay<MotionEvent> = tapSensor.tapOneRelay

@@ -1,9 +1,9 @@
-package avsoftware.com.fingertap.sensors.accelerometer
+package avsoftware.com.fingertap.sensors
 
 import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorManager
-import avsoftware.com.fingertap.sensors.Recordable
+import avsoftware.com.fingertap.recorder.Recordable
 
 import com.github.pwittchen.reactivesensors.library.ReactiveSensorFilter
 import com.github.pwittchen.reactivesensors.library.ReactiveSensors

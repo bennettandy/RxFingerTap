@@ -1,12 +1,9 @@
 package avsoftware.com.fingertap.recorder
 
-import android.databinding.ObservableBoolean
-import avsoftware.com.fingertap.sensors.Recordable
 import com.jakewharton.rxrelay2.BehaviorRelay
 import com.jakewharton.rxrelay2.Relay
 import io.reactivex.BackpressureStrategy
 import io.reactivex.Flowable
-import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.functions.BiFunction
 import io.reactivex.schedulers.Schedulers
@@ -14,6 +11,10 @@ import java.io.File
 
 interface FileRecorder {
     fun writeToFile(recordable: Flowable<out Recordable>, outputDirectory: File, filename: String = "testfile", envelope: FileEnvelope = FileEnvelope()): Single<RecordedFile>
+}
+
+interface Recordable {
+    fun getRecordableString(): String
 }
 
 // Result class returns details of the recorded File
@@ -65,7 +66,6 @@ class FileRecorderImpl : FileRecorder {
 
         fun writeSeparator() {
             write(separator)
-
         }
 
         fun close() {
