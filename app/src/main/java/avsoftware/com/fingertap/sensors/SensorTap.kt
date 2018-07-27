@@ -2,6 +2,7 @@ package avsoftware.com.fingertap.sensors
 
 import android.view.MotionEvent
 import android.view.View
+import avsoftware.com.fingertap.sensors.accelerometer.TapData
 import io.reactivex.subjects.PublishSubject
 
 
@@ -27,10 +28,10 @@ class SensorTap(private val view: View, private val iButton: Int) {
     private val timer: Float
         get() = (System.currentTimeMillis() - iTimer) / 1000f
 
-    // CLASS to store tap data
-    data class TapData(var iButton: Int, var fStartTime: Float, var fDuration: Float, var x: Float, var y: Float) : Recordable {
-        override fun getRecordableString(): String { return "\"<ORKTappingSample: 0x00000000; button: $iButton; timestamp: $fStartTime; timestamp: $fDuration; location: {$x, $y}>\"" }
-    }
+//    // CLASS to store tap data
+//    data class TapData(var iButton: Int, var fStartTime: Float, var fDuration: Float, var x: Float, var y: Float) : Recordable {
+//        override fun getRecordableString(): String { return "\"<ORKTappingSample: 0x00000000; button: $iButton; timestamp: $fStartTime; timestamp: $fDuration; location: {$x, $y}>\"" }
+//    }
 
     // METHODS for overriding sensor interface
     fun onData() = behObs

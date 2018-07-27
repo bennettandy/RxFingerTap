@@ -6,33 +6,25 @@ import android.databinding.ObservableBoolean
 import android.databinding.ObservableInt
 import android.view.MotionEvent
 import android.widget.ImageView
-import avsoftware.com.fingertap.recorder.TapRecorder
+import avsoftware.com.fingertap.sensors.accelerometer.TapData
+import avsoftware.com.fingertap.sensors.accelerometer.TapSensor
 import com.jakewharton.rxrelay2.Relay
-import io.reactivex.Observable
-import java.io.File
+import io.reactivex.Flowable
 
 class TapViewModel {
+
+    val LEFT_BUTTON_ID = 100;
+    val RIGHT_BUTTON_ID = 200;
+    val tapSensor = TapSensor()
+
+    val tapOneRelay: Relay<MotionEvent> = tapSensor.tapOneRelay
+    val tapTwoRelay: Relay<MotionEvent> = tapSensor.tapTwoRelay
+
+    val tapDataPipeline: Flowable<TapData> = tapSensor.tapEventPipeline(LEFT_BUTTON_ID, RIGHT_BUTTON_ID)
 
     val isRightHand: ObservableBoolean = ObservableBoolean(true)
 
     val totalTaps: ObservableInt = ObservableInt(0)
-
-    val tapRecorder: TapRecorder by lazy {
-        val directory: File = FingerTapApplication.instance?.cacheDir ?: File("")
-        TapRecorder("tapsOutput.txt", directory)
-    }
-
-    val tapOneRelay: Relay<MotionEvent> = tapRecorder.tapOneRelay
-    val tapTwoRelay: Relay<MotionEvent> = tapRecorder.tapTwoRelay
-
-    val visibility: ObservableBoolean = ObservableBoolean(true)
-
-
-    fun combinedTaps(): Observable<MotionEvent> {
-        return Observable.merge( tapOneRelay, tapTwoRelay )
-    }
-
-
 }
 
 @SuppressLint("ClickableViewAccessibility")

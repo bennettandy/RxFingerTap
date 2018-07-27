@@ -1,5 +1,6 @@
 package avsoftware.com.fingertap.recorder
 
+import android.databinding.ObservableBoolean
 import avsoftware.com.fingertap.sensors.Recordable
 import com.jakewharton.rxrelay2.BehaviorRelay
 import com.jakewharton.rxrelay2.Relay
@@ -30,7 +31,8 @@ class FileRecorderImpl : FileRecorder {
         return Single.just(FileStream(File(outputDirectory, filename)))
                 .observeOn(Schedulers.io()) // requires IO scheduler to write to filesystem
 
-                .doOnSuccess { fileStream -> fileStream.write(envelope.header) } // write file header from envelope
+                .doOnSuccess { fileStream ->
+                    fileStream.write(envelope.header) } // write file header from envelope
 
                 .flatMap { filestream ->
                     recordable.take(1) // write the first element without a leading separator

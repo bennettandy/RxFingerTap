@@ -24,7 +24,6 @@
             android:id="@+id/textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:visibility="@{viewModel.visibility ? View.VISIBLE : View.GONE }"
             android:layout_marginTop="5dp"
             android:text="@{viewModel.isRightHand ? @string/tap_header_right_hand : @string/tap_header_left_hand }"
             />
