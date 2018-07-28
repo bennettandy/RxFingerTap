@@ -60,19 +60,32 @@ class FileRecorderImpl : FileRecorder {
                 .map { RecordedFile(it) }
     }
 
-    internal inner class FileStream(val file: File, val separator: String = ", ") {
+    /**
+     * Groups the file instance with buffered writer
+     * More readable than using Pair<File,BufferedWriter>
+     */
+    internal inner class FileStream(val file: File, val separator: String = ", ") : RecordWriter {
 
-        val bufferedWriter by lazy { file.bufferedWriter() }
+        private val bufferedWriter by lazy { file.bufferedWriter() }
 
-        fun write(data: String) = bufferedWriter.write(data)
+        override fun write(data: String) = bufferedWriter.write(data)
 
-        fun writeSeparator() {
+        override fun writeSeparator() {
             write(separator)
         }
 
-        fun close() {
+        override fun close() {
             bufferedWriter.flush()
             bufferedWriter.close()
         }
     }
+}
+
+/**
+ * Mockable interface
+ */
+interface RecordWriter {
+    fun write(data: String)
+    fun writeSeparator()
+    fun close()
 }
