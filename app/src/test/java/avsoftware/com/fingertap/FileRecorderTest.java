@@ -34,20 +34,82 @@ public class FileRecorderTest extends RxBaseTest {
     @Mock
     private File mockFileResult;
 
-    static class TestEvent implements Recordable {
-        private final String mEventString;
-        
-        public TestEvent(String eventString){
-            mEventString = eventString;
-        }
-        
-        @NotNull
-        @Override
-        public String getRecordableString() {
-            return mEventString;
-        }
+    @Test
+    public void testFileRecorder() {
+
+        // set up Mock Writer
+        when(mockRecordWriter.getFileObject()).thenReturn(mockFileResult);
+
+        FileRecorder fileRecorder = new FileRecorderImpl();
+
+        Flowable<? extends Recordable> eventsFlowable = createEventsFlowable(15, "-Test");
+
+        FileEnvelope fileEnvelope = new FileEnvelope("header123", "footer321");
+
+        Single<RecordedFile> fileRecorderStream = fileRecorder.writeToFile(eventsFlowable, mockRecordWriter, fileEnvelope);
+        TestObserver<RecordedFile> testSubscriber = fileRecorderStream.subscribeOn(mTestScheduler).test();
+
+        mTestScheduler.advanceTimeBy(1, TimeUnit.SECONDS);
+
+        // Test Result Object, should contain File pointing to the written file
+        testSubscriber.assertValueCount(1);
+        testSubscriber.assertValue(recordedFile -> recordedFile.getFile().equals(mockFileResult));
+
+        testSubscriber.dispose();
+
+        // Check Write Events
+        verify(mockRecordWriter, times(14)).writeSeparator(); // one less than the number of items
+        verify(mockRecordWriter, times(1)).write("header123"); // one header
+        verify(mockRecordWriter, times(1)).write("footer321"); // one footer
+        verify(mockRecordWriter, times(17)).write(any()); // total write events
+        verify(mockRecordWriter, times(1)).close(); // close called once
+        verify(mockRecordWriter, times(1)).getFileObject(); // get File Object called once
+
+        // some random writes from data Events
+        verify(mockRecordWriter, times(1)).write("14-Test");
+        verify(mockRecordWriter, times(1)).write("0-Test");
+        verify(mockRecordWriter, times(1)).write("4-Test");
+        verify(mockRecordWriter, times(1)).write("1-Test");
     }
-    
+
+    @Test
+    public void testLongFile() {
+
+        // set up Mock Writer
+        when(mockRecordWriter.getFileObject()).thenReturn(mockFileResult);
+
+        FileRecorder fileRecorder = new FileRecorderImpl();
+
+        Flowable<? extends Recordable> eventsFlowable = createEventsFlowable(15000, "-Test");
+
+        FileEnvelope fileEnvelope = new FileEnvelope("header123", "footer321");
+
+        Single<RecordedFile> fileRecorderStream = fileRecorder.writeToFile(eventsFlowable, mockRecordWriter, fileEnvelope);
+        TestObserver<RecordedFile> testSubscriber = fileRecorderStream.subscribeOn(mTestScheduler).test();
+
+        mTestScheduler.advanceTimeBy(5, TimeUnit.SECONDS);
+
+        // Test Result Object, should contain File pointing to the written file
+        testSubscriber.assertValueCount(1);
+        testSubscriber.assertValue(recordedFile -> recordedFile.getFile().equals(mockFileResult));
+
+        testSubscriber.dispose();
+
+        // Check Write Events
+        verify(mockRecordWriter, times(14999)).writeSeparator(); // one less than the number of items
+        verify(mockRecordWriter, times(1)).write("header123"); // one header
+        verify(mockRecordWriter, times(1)).write("footer321"); // one footer
+        verify(mockRecordWriter, times(15002)).write(any()); // total write events
+        verify(mockRecordWriter, times(1)).close(); // close called once
+        verify(mockRecordWriter, times(1)).getFileObject(); // get File Object called once
+
+        // some random writes from data Events
+        verify(mockRecordWriter, times(1)).write("14-Test");
+        verify(mockRecordWriter, times(1)).write("0-Test");
+        verify(mockRecordWriter, times(1)).write("4-Test");
+        verify(mockRecordWriter, times(1)).write("14999-Test");
+    }
+
     @Test
     public void testMockEventsFlowable() {
 
@@ -72,47 +134,24 @@ public class FileRecorderTest extends RxBaseTest {
         test.dispose();
     }
 
-    @Test
-    public void testFileRecorder(){
-
-        // set up Mock Writer
-        when(mockRecordWriter.getFileObject()).thenReturn(mockFileResult);
-
-        FileRecorder fileRecorder = new FileRecorderImpl();
-
-        Flowable<? extends Recordable> eventsFlowable = createEventsFlowable(15, "-Test");
-
-        FileEnvelope fileEnvelope = new FileEnvelope("header123", "footer321");
-
-        Single<RecordedFile> fileRecorderStream = fileRecorder.writeToFile(eventsFlowable, mockRecordWriter, fileEnvelope);
-        TestObserver<RecordedFile> testSubscriber = fileRecorderStream.subscribeOn(mTestScheduler).test();
-
-        mTestScheduler.advanceTimeBy(1,TimeUnit.SECONDS);
-
-        // Test Result Object, should contain File pointing to the written file
-        testSubscriber.assertValueCount(1);
-        testSubscriber.assertValue(recordedFile -> recordedFile.getFile().equals(mockFileResult));
-
-        testSubscriber.dispose();
-
-        // Check Write Events
-        verify(mockRecordWriter, times(14)).writeSeparator(); // one less than the number of items
-        verify(mockRecordWriter, times(1)).write("header123"); // one header
-        verify(mockRecordWriter, times(1)).write("footer321"); // one footer
-        verify(mockRecordWriter, times(17)).write(any()); // total write events
-        verify(mockRecordWriter, times(1)).close(); // close called once
-        verify(mockRecordWriter, times(1)).getFileObject(); // get File Object called once
-
-        // some random writes from data Events
-        verify(mockRecordWriter, times(1)).write("14-Test");
-        verify(mockRecordWriter, times(1)).write("0-Test");
-        verify(mockRecordWriter, times(1)).write("4-Test");
-        verify(mockRecordWriter, times(1)).write("1-Test");
-    }
-
-    private Flowable<TestEvent> createEventsFlowable( int length, String suffix){
+    private Flowable<TestEvent> createEventsFlowable(int length, String suffix) {
         return Flowable.range(0, length)
-                .map(integer -> integer + suffix )
+                .map(integer -> integer + suffix)
                 .map(TestEvent::new);
     }
+
+    static class TestEvent implements Recordable {
+        private final String mEventString;
+
+        public TestEvent(String eventString) {
+            mEventString = eventString;
+        }
+
+        @NotNull
+        @Override
+        public String getRecordableString() {
+            return mEventString;
+        }
+    }
+
 }
