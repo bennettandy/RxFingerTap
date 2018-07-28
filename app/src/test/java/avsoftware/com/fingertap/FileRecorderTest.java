@@ -6,6 +6,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 import avsoftware.com.fingertap.recorder.FileEnvelope;
@@ -13,14 +14,25 @@ import avsoftware.com.fingertap.recorder.FileRecorder;
 import avsoftware.com.fingertap.recorder.FileRecorderImpl;
 import avsoftware.com.fingertap.recorder.RecordWriter;
 import avsoftware.com.fingertap.recorder.Recordable;
+import avsoftware.com.fingertap.recorder.RecordedFile;
 import io.reactivex.Flowable;
+import io.reactivex.Single;
+import io.reactivex.observers.TestObserver;
 import io.reactivex.subscribers.TestSubscriber;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 @RunWith(MockitoJUnitRunner.class)
 public class FileRecorderTest extends RxBaseTest {
 
     @Mock
     private RecordWriter mockRecordWriter;
+
+    @Mock
+    private File mockFileResult;
 
     static class TestEvent implements Recordable {
         private final String mEventString;
@@ -60,7 +72,11 @@ public class FileRecorderTest extends RxBaseTest {
         test.dispose();
     }
 
+    @Test
     public void testFileRecorder(){
+
+        // set up Mock Writer
+        when(mockRecordWriter.getFileObject()).thenReturn(mockFileResult);
 
         FileRecorder fileRecorder = new FileRecorderImpl();
 
@@ -68,18 +84,31 @@ public class FileRecorderTest extends RxBaseTest {
 
         FileEnvelope fileEnvelope = new FileEnvelope("header123", "footer321");
 
-      //  fileRecorder.writeToFile(eventsFlowable, mockRecordWriter, fileEnvelope);
+        Single<RecordedFile> fileRecorderStream = fileRecorder.writeToFile(eventsFlowable, mockRecordWriter, fileEnvelope);
+        TestObserver<RecordedFile> testSubscriber = fileRecorderStream.subscribeOn(mTestScheduler).test();
 
-        // Consume and record Tap Events
-//                recorderTaps.writeToFile(tapEventPipeline,
-//                        externalCacheDir, "taps.txt", tapDataEnvelope )
-//                        .doOnSuccess { Timber.d("DONE TAPS") }
-//                        .doOnError { Timber.e(it, "Failed to write file") }
-//                        .doOnSuccess { Timber.d("DONE $it") }
+        mTestScheduler.advanceTimeBy(1,TimeUnit.SECONDS);
 
+        // Test Result Object, should contain File pointing to the written file
+        testSubscriber.assertValueCount(1);
+        testSubscriber.assertValue(recordedFile -> recordedFile.getFile().equals(mockFileResult));
+
+        testSubscriber.dispose();
+
+        // Check Write Events
+        verify(mockRecordWriter, times(14)).writeSeparator(); // one less than the number of items
+        verify(mockRecordWriter, times(1)).write("header123"); // one header
+        verify(mockRecordWriter, times(1)).write("footer321"); // one footer
+        verify(mockRecordWriter, times(17)).write(any()); // total write events
+        verify(mockRecordWriter, times(1)).close(); // close called once
+        verify(mockRecordWriter, times(1)).getFileObject(); // get File Object called once
+
+        // some random writes from data Events
+        verify(mockRecordWriter, times(1)).write("14-Test");
+        verify(mockRecordWriter, times(1)).write("0-Test");
+        verify(mockRecordWriter, times(1)).write("4-Test");
+        verify(mockRecordWriter, times(1)).write("1-Test");
     }
-
-
 
     private Flowable<TestEvent> createEventsFlowable( int length, String suffix){
         return Flowable.range(0, length)

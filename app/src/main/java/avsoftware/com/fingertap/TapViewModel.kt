@@ -9,6 +9,7 @@ import android.databinding.ObservableLong
 import android.view.MotionEvent
 import android.widget.ImageView
 import avsoftware.com.fingertap.recorder.FileEnvelope
+import avsoftware.com.fingertap.recorder.FileRecordWriter
 import avsoftware.com.fingertap.recorder.FileRecorderImpl
 import avsoftware.com.fingertap.recorder.RecordedFile
 import avsoftware.com.fingertap.sensors.Accelerometer
@@ -77,7 +78,7 @@ class TapViewModel {
         val recorderAccelerometer = FileRecorderImpl()
 
         return recorderAccelerometer.writeToFile(accelerometer.accelerometerFlowable, // INFINITE stream
-                recordDirectory, fileName, accelerometerEnvelope)
+                FileRecordWriter(recordDirectory, fileName), accelerometerEnvelope)
                 .doOnSubscribe { Timber.d("START") }
                 .doOnSuccess { Timber.d("DONE") }
                 .doOnDispose { Timber.d("Disposed") }
@@ -92,7 +93,7 @@ class TapViewModel {
 
         // Consume and record Tap Events
         return recorderTaps.writeToFile(tapDataPipeline,
-                        recordDirectory, fileName, tapDataEnvelope )
+                FileRecordWriter(recordDirectory, fileName), tapDataEnvelope )
                         .doOnSuccess { Timber.d("DONE TAPS") }
                         .doOnError { Timber.e(it, "Failed to write file") }
                         .doOnSuccess { Timber.d("DONE $it") }

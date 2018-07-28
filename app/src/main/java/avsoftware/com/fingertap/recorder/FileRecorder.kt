@@ -10,7 +10,7 @@ import io.reactivex.schedulers.Schedulers
 import java.io.File
 
 interface FileRecorder {
-    fun writeToFile(recordable: Flowable<out Recordable>, outputDirectory: File, filename: String = "testfile", envelope: FileEnvelope = FileEnvelope()): Single<RecordedFile>
+    fun writeToFile(recordable: Flowable<out Recordable>, recordWriter: RecordWriter, envelope: FileEnvelope = FileEnvelope()): Single<RecordedFile>
 }
 
 interface Recordable {
@@ -29,9 +29,9 @@ class FileRecorderImpl : FileRecorder {
 
     fun stopRecording() = stopFlag.accept(true)
 
-    override fun writeToFile(recordable: Flowable<out Recordable>, outputDirectory: File, filename: String, envelope: FileEnvelope): Single<RecordedFile> {
+    override fun writeToFile(recordable: Flowable<out Recordable>, recordWriter: RecordWriter, envelope: FileEnvelope): Single<RecordedFile> {
 
-        return Single.just(FileStream(File(outputDirectory, filename)))
+        return Single.just(recordWriter)
                 .observeOn(Schedulers.io()) // requires IO scheduler to write to filesystem
 
                 .doOnSuccess { fileStream ->
@@ -47,37 +47,39 @@ class FileRecorderImpl : FileRecorder {
                     recordable.skip(1) // write all subsequent elements with a leading separator
                             .withLatestFrom(this.stopFlag.toFlowable(BackpressureStrategy.BUFFER), BiFunction { dataEvent: Recordable, shouldStop: Boolean -> Pair(dataEvent, shouldStop)  })
                             .takeUntil { pair -> pair.second } // stop taking events once this flag is triggered
-                            .map { pair -> pair.first} // no longer care about stop flag, so map back to the data Event object
+                            .map { it.first} // no longer care about stop flag, so map back to the data Event object
                             .doOnNext { filestream.writeSeparator() } // write data separator
                             .doOnNext { filestream.write(it.getRecordableString()) } // write data item
                             .ignoreElements()
-                            .toSingleDefault(filestream) // output just the original FileStream Object so we can complete the file
+                            .toSingleDefault(filestream) // output just the original FileRecordWriter Object so we can complete the file
                 }
 
-                .doOnSuccess { fileStream: FileStream -> fileStream.write(envelope.footer) } // write file footer from envelope
+                .doOnSuccess { it.write(envelope.footer) } // write file footer from envelope
                 .doOnSuccess { it.close() }
-                .map { fileStream -> fileStream.file }
+                .map { it.getFileObject() }
                 .map { RecordedFile(it) }
     }
+}
 
-    /**
-     * Groups the file instance with buffered writer
-     * More readable than using Pair<File,BufferedWriter>
-     */
-    internal inner class FileStream(val file: File, val separator: String = ", ") : RecordWriter {
+/**
+ * Groups the file instance with buffered writer
+ * More readable than using Pair<File,BufferedWriter>
+ */
+class FileRecordWriter(val file: File, val separator: String = ", ") : RecordWriter {
 
-        private val bufferedWriter by lazy { file.bufferedWriter() }
+    private val bufferedWriter by lazy { file.bufferedWriter() }
 
-        override fun write(data: String) = bufferedWriter.write(data)
+    override fun getFileObject() = this.file
 
-        override fun writeSeparator() {
-            write(separator)
-        }
+    override fun write(data: String) = bufferedWriter.write(data)
 
-        override fun close() {
-            bufferedWriter.flush()
-            bufferedWriter.close()
-        }
+    override fun writeSeparator() {
+        write(separator)
+    }
+
+    override fun close() {
+        bufferedWriter.flush()
+        bufferedWriter.close()
     }
 }
 
@@ -87,5 +89,6 @@ class FileRecorderImpl : FileRecorder {
 interface RecordWriter {
     fun write(data: String)
     fun writeSeparator()
+    fun getFileObject(): File
     fun close()
 }

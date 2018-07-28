@@ -4,9 +4,7 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.view.LayoutInflater
 import avsoftware.com.fingertap.databinding.ActivityFingerTapBinding
-import avsoftware.com.fingertap.recorder.FileEnvelope
-import avsoftware.com.fingertap.recorder.FileRecorderImpl
-import avsoftware.com.fingertap.recorder.RecordedFile
+import avsoftware.com.fingertap.recorder.*
 import avsoftware.com.fingertap.sensors.Accelerometer
 import avsoftware.com.fingertap.sensors.TapData
 import io.reactivex.Flowable
@@ -39,12 +37,6 @@ class FingerTapActivity : AppCompatActivity() {
         // Build Tap Event Recorder
 
 
-
-
-
-
-
-
         val accelerometer = Accelerometer(this)
 
 
@@ -74,9 +66,10 @@ class FingerTapActivity : AppCompatActivity() {
         val recorderTaps = FileRecorderImpl()
 
         // Consume and record Tap Events
+        val tapsRecordWriter = FileRecordWriter(externalCacheDir, "taps.txt")
         disposable.add(
                 recorderTaps.writeToFile(tapEventPipeline,
-                        externalCacheDir, "taps.txt", tapDataEnvelope )
+                        tapsRecordWriter, tapDataEnvelope )
                         .doOnSuccess { Timber.d("DONE TAPS") }
                         .doOnError { Timber.e(it, "Failed to write file") }
                         .doOnSuccess { Timber.d("DONE $it") }
@@ -89,10 +82,12 @@ class FingerTapActivity : AppCompatActivity() {
         // Accelerometer Recorder
         val recorderAccelerometer = FileRecorderImpl()
 
+        val accelRecordWriter = FileRecordWriter(externalCacheDir, "accelerometer.txt")
+
         // Consume and record Accelerometer events
         disposable.add(
                 recorderAccelerometer.writeToFile(accelerometer.accelerometerFlowable, // INFINITE stream
-                        externalCacheDir, "accelerometer.txt", accelerometerEnvelope)
+                        accelRecordWriter, accelerometerEnvelope)
                         .doOnSubscribe { Timber.d("START") }
                         .doOnSuccess { Timber.d("DONE") }
                         .doOnDispose { Timber.d("Disposed") }
