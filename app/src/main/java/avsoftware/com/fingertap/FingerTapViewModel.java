@@ -24,7 +24,7 @@ public class FingerTapViewModel {
     public FingerTapViewModel(@NotNull  Context context, Observable<MotionEvent> leftTouchEvents, @NotNull Observable<MotionEvent> rightTouchEvents){
         fingerTapUseCase = new FingerTapMeasureUseCase(context, leftTouchEvents, rightTouchEvents );
         countdownProgress = new ObservableInt(0);
-        totalTaps = new ObservableInt(99);
+        totalTaps = new ObservableInt(0);
     }
 
     public Observable<RecordedFile> getProcessorPipeline(Context context){
@@ -36,6 +36,6 @@ public class FingerTapViewModel {
     }
 
     private Flowable<RecordedFile> getEventProcessorPipeline(@NotNull File tapsOutputFile, @NotNull File accelerometerOutputFile){
-        return fingerTapUseCase.setUpProcessingPipeline(tapsOutputFile, accelerometerOutputFile, countdownProgress);
+        return fingerTapUseCase.setUpProcessingPipeline(tapsOutputFile, accelerometerOutputFile, countdownProgress, totalTaps);
     }
 }

@@ -25,14 +25,13 @@ import io.reactivex.Completable;
 import io.reactivex.Flowable;
 import io.reactivex.Observable;
 import io.reactivex.Single;
-import timber.log.Timber;
 
 public class FingerTapMeasureUseCase {
 
     private final static int LEFT_TAP_ID = 100;
     private final static int RIGHT_TAP_ID = 200;
 
-    private final static int COUNT_DOWN_SECONDS = 30;
+    private final static int COUNT_DOWN_SECONDS = 10;
 
     private final TapSensor mTapSensor;
     private final Accelerometer mAccelerometer;
@@ -57,12 +56,13 @@ public class FingerTapMeasureUseCase {
         mAccelerometer = new Accelerometer(context, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
-    public Flowable<RecordedFile> setUpProcessingPipeline(@NotNull File tapsOutputFile, @NotNull File accelerometerOutputFile, @NotNull ObservableInt countDownObservable){
+    public Flowable<RecordedFile> setUpProcessingPipeline(@NotNull File tapsOutputFile, @NotNull File accelerometerOutputFile, @NotNull ObservableInt countDownObservable, ObservableInt totalTaps){
         // Tap Events emitted from this pipeline
-        Flowable<TapData> tapEvents = mTapSensor.tapEventPipeline(LEFT_TAP_ID, RIGHT_TAP_ID);
+        Flowable<TapData> tapEvents = mTapSensor.tapEventPipeline(LEFT_TAP_ID, RIGHT_TAP_ID)
+                .doOnNext(tapData -> totalTaps.set(totalTaps.get()+1)).share();
 
         // Stop Flag will stop file writers consuming further events and close their respective files
-        Completable countDownTimer = createCountDownTimer(countDownObservable, COUNT_DOWN_SECONDS);
+        Completable countDownTimer = createCountDownTimer(countDownObservable);
 
         // Timer Starts by taking the first tap event and emits true when the timer completes
         Observable<Boolean> stopFlag = tapEvents.take(1) // first tap should start the timer
@@ -70,7 +70,8 @@ public class FingerTapMeasureUseCase {
                 .flatMapSingle( aBoolean -> countDownTimer
                         .toSingleDefault(true))
                 .toObservable()
-                .startWith(false);
+                .startWith(false)
+                .share();
 
         // Accelerometer events
         Flowable<AccelerometerData> accelerometerEvents = mAccelerometer.getAccelerometerFlowable();
@@ -94,11 +95,9 @@ public class FingerTapMeasureUseCase {
     /**
      * Count town length seconds, updating countDownStatus and then Complete
      */
-    private Completable createCountDownTimer( ObservableInt countDownStatus, int length ){
-        return Observable.zip(Observable.range(0, length), Observable.interval(1, TimeUnit.SECONDS), (integer, aLong) -> length - integer)
-                .doOnSubscribe(__ -> Timber.d("Timer has started"))
+    private Completable createCountDownTimer( ObservableInt countDownStatus ){
+        return Observable.zip(Observable.range(0, COUNT_DOWN_SECONDS), Observable.interval(1, TimeUnit.SECONDS), (integer, aLong) -> COUNT_DOWN_SECONDS - integer)
                 .doOnNext(countDownStatus::set) // update UI counter
-                .doOnNext(count -> Timber.d("Timer Count: %d", count))
                 .ignoreElements();
     }
 }
