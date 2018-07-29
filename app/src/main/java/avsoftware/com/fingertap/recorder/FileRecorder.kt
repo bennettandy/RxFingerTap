@@ -9,7 +9,10 @@ import io.reactivex.schedulers.Schedulers
 import java.io.File
 
 interface FileRecorder {
-    fun writeToFile(recordable: Flowable<out Recordable>, recordWriter: RecordWriter, envelope: FileEnvelope, stopFlag: Observable<Boolean>): Single<RecordedFile>
+    fun writeToFile(recordable: Flowable<out Recordable>,
+                    recordWriter: RecordWriter,
+                    envelope: FileEnvelope,
+                    stopFlag: Observable<Boolean> ): Single<RecordedFile>
 }
 
 // Implemented by Recordable Data Events to enable them to format their contents
@@ -25,7 +28,10 @@ class FileEnvelope(val header: String = "", val footer: String = "")
 
 class FileRecorderImpl : FileRecorder {
 
-    override fun writeToFile(recordable: Flowable<out Recordable>, recordWriter: RecordWriter, envelope: FileEnvelope, stopFlag: Observable<Boolean>): Single<RecordedFile> {
+    override fun writeToFile(recordable: Flowable<out Recordable>,
+                             recordWriter: RecordWriter,
+                             envelope: FileEnvelope,
+                             stopFlag: Observable<Boolean> ): Single<RecordedFile> {
 
         // Events flow until stopFlag emits True
         val stoppableEventStream = Flowable

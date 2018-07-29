@@ -31,7 +31,7 @@ public class FingerTapMeasureUseCase {
     private final static int LEFT_TAP_ID = 100;
     private final static int RIGHT_TAP_ID = 200;
 
-    private final static int COUNT_DOWN_SECONDS = 5;
+    private final static int COUNT_DOWN_SECONDS = 10;
 
     private final TapSensor mTapSensor;
     private final Accelerometer mAccelerometer;
@@ -96,10 +96,11 @@ public class FingerTapMeasureUseCase {
      * Count down length seconds, updating countDownStatus and then Complete
      */
     private Completable createCountDownTimer( ObservableInt countDownStatus ){
-        return Observable.zip(Observable.range(0, COUNT_DOWN_SECONDS), Observable.interval(1, TimeUnit.SECONDS), (integer, aLong) -> COUNT_DOWN_SECONDS - integer).startWith(COUNT_DOWN_SECONDS)
+        return Observable.zip(Observable.range(0, COUNT_DOWN_SECONDS),
+                Observable.interval(1, TimeUnit.SECONDS), (integer, aLong) -> COUNT_DOWN_SECONDS - integer)
                 .doOnSubscribe(__ -> countDownStatus.set(COUNT_DOWN_SECONDS))
-                //.startWith(COUNT_DOWN_SECONDS)
                 .map( integer -> integer - 1)
+                .startWith(COUNT_DOWN_SECONDS)
                 .doOnNext(countDownStatus::set) // update UI counter
                 .ignoreElements();
     }
