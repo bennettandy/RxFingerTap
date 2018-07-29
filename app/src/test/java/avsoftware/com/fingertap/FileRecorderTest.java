@@ -16,8 +16,11 @@ import avsoftware.com.fingertap.recorder.RecordWriter;
 import avsoftware.com.fingertap.recorder.Recordable;
 import avsoftware.com.fingertap.recorder.RecordedFile;
 import io.reactivex.Flowable;
+import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.reactivex.observers.TestObserver;
+import io.reactivex.subjects.BehaviorSubject;
+import io.reactivex.subjects.PublishSubject;
 import io.reactivex.subscribers.TestSubscriber;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -35,7 +38,7 @@ public class FileRecorderTest extends RxBaseTest {
     private File mockFileResult;
 
     @Test
-    public void testFileRecorder() {
+    public void testFileRecorder_short() {
 
         // set up Mock Writer
         when(mockRecordWriter.getFileObject()).thenReturn(mockFileResult);
@@ -46,7 +49,9 @@ public class FileRecorderTest extends RxBaseTest {
 
         FileEnvelope fileEnvelope = new FileEnvelope("header123", "footer321");
 
-        Single<RecordedFile> fileRecorderStream = fileRecorder.writeToFile(eventsFlowable, mockRecordWriter, fileEnvelope);
+        Observable<Boolean> stopFlag = BehaviorSubject.createDefault(false);
+
+        Single<RecordedFile> fileRecorderStream = fileRecorder.writeToFile(eventsFlowable, mockRecordWriter, fileEnvelope, stopFlag);
         TestObserver<RecordedFile> testSubscriber = fileRecorderStream.subscribeOn(mTestScheduler).test();
 
         mTestScheduler.advanceTimeBy(1, TimeUnit.SECONDS);
@@ -57,7 +62,7 @@ public class FileRecorderTest extends RxBaseTest {
 
         testSubscriber.dispose();
 
-        // Check Write Events
+        // Check Write Events on Mocks
         verify(mockRecordWriter, times(14)).writeSeparator(); // one less than the number of items
         verify(mockRecordWriter, times(1)).write("header123"); // one header
         verify(mockRecordWriter, times(1)).write("footer321"); // one footer
@@ -73,7 +78,7 @@ public class FileRecorderTest extends RxBaseTest {
     }
 
     @Test
-    public void testLongFile() {
+    public void testFileRecorder_long() {
 
         // set up Mock Writer
         when(mockRecordWriter.getFileObject()).thenReturn(mockFileResult);
@@ -84,7 +89,9 @@ public class FileRecorderTest extends RxBaseTest {
 
         FileEnvelope fileEnvelope = new FileEnvelope("header123", "footer321");
 
-        Single<RecordedFile> fileRecorderStream = fileRecorder.writeToFile(eventsFlowable, mockRecordWriter, fileEnvelope);
+        Observable<Boolean> stopFlag = BehaviorSubject.createDefault(false);
+
+        Single<RecordedFile> fileRecorderStream = fileRecorder.writeToFile(eventsFlowable, mockRecordWriter, fileEnvelope, stopFlag);
         TestObserver<RecordedFile> testSubscriber = fileRecorderStream.subscribeOn(mTestScheduler).test();
 
         mTestScheduler.advanceTimeBy(5, TimeUnit.SECONDS);
@@ -95,7 +102,7 @@ public class FileRecorderTest extends RxBaseTest {
 
         testSubscriber.dispose();
 
-        // Check Write Events
+        // Check Write Events on Mocks
         verify(mockRecordWriter, times(14999)).writeSeparator(); // one less than the number of items
         verify(mockRecordWriter, times(1)).write("header123"); // one header
         verify(mockRecordWriter, times(1)).write("footer321"); // one footer

@@ -9,7 +9,7 @@
 
         <variable
             name="viewModel"
-            type="avsoftware.com.fingertap.TapViewModel" />
+            type="avsoftware.com.fingertap.FingerTapViewModel" />
 
         <variable
             name="activity"
@@ -29,7 +29,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
-            android:text="@{viewModel.isRightHand ? @string/tap_header_right_hand : @string/tap_header_left_hand }"
             />
 
         <TextView
@@ -43,7 +42,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
-            android:text="@{ Long.toString(viewModel.testProgress) }"
+            android:text="@{ Integer.toString(viewModel.countdownProgress) }"
             />
 
         <ImageView
@@ -51,7 +50,6 @@
             android:layout_width="100dp"
             android:layout_height="100dp"
             android:background="@color/colorAccent"
-            app:motionEventsX="@{viewModel.tapOneRelay}"
             />
 
         <ImageView
@@ -59,21 +57,8 @@
             android:layout_width="100dp"
             android:layout_height="100dp"
             android:background="@color/colorPrimary"
-            app:motionEventsX="@{viewModel.tapTwoRelay}"
             />
 
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:visibility="@{viewModel.testIsRunning ? View.GONE : View.VISIBLE }"
-            android:onClick="@{() -> activity.startTest()}"
-            android:text="Start Test"/>
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:visibility="@{viewModel.testIsRunning ? View.VISIBLE : View.GONE }"
-            android:text="Stop Test"/>
 
     </LinearLayout>
 </layout>

@@ -1,18 +1,18 @@
 package avsoftware.com.fingertap.recorder
 
-import com.jakewharton.rxrelay2.BehaviorRelay
-import com.jakewharton.rxrelay2.Relay
 import io.reactivex.BackpressureStrategy
 import io.reactivex.Flowable
+import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.functions.BiFunction
 import io.reactivex.schedulers.Schedulers
 import java.io.File
 
 interface FileRecorder {
-    fun writeToFile(recordable: Flowable<out Recordable>, recordWriter: RecordWriter, envelope: FileEnvelope = FileEnvelope()): Single<RecordedFile>
+    fun writeToFile(recordable: Flowable<out Recordable>, recordWriter: RecordWriter, envelope: FileEnvelope, stopFlag: Observable<Boolean>): Single<RecordedFile>
 }
 
+// Implemented by Recordable Data Events to enable them to format their contents
 interface Recordable {
     fun getRecordableString(): String
 }
@@ -25,28 +25,24 @@ class FileEnvelope(val header: String = "", val footer: String = "")
 
 class FileRecorderImpl : FileRecorder {
 
-    private var stopFlag: Relay<Boolean> = BehaviorRelay.createDefault(false)
-
-    fun stopRecording() = stopFlag.accept(true)
-
-    override fun writeToFile(recordable: Flowable<out Recordable>, recordWriter: RecordWriter, envelope: FileEnvelope): Single<RecordedFile> {
+    override fun writeToFile(recordable: Flowable<out Recordable>, recordWriter: RecordWriter, envelope: FileEnvelope, stopFlag: Observable<Boolean>): Single<RecordedFile> {
 
         return Single.just(recordWriter)
                 .observeOn(Schedulers.io()) // requires IO scheduler to write to filesystem
 
-                .doOnSuccess { fileStream ->
-                    fileStream.write(envelope.header) } // write file header from envelope
+                .doOnSuccess { it.write(envelope.header) } // write file header from envelope
 
                 .flatMap { filestream ->
                     recordable.take(1) // write the first element without a leading separator
-                            .doOnNext { recordable -> filestream.write(recordable.getRecordableString()) }
+                            .doOnNext { filestream.write(it.getRecordableString()) }
                             .ignoreElements().toSingleDefault(filestream)
                 }
 
                 .flatMap { filestream ->
                     recordable.skip(1) // write all subsequent elements with a leading separator
-                            .withLatestFrom(this.stopFlag.toFlowable(BackpressureStrategy.BUFFER), BiFunction { dataEvent: Recordable, shouldStop: Boolean -> Pair(dataEvent, shouldStop)  })
-                            .takeUntil { pair -> pair.second } // stop taking events once this flag is triggered
+                            .withLatestFrom(stopFlag.toFlowable(BackpressureStrategy.BUFFER),
+                                    BiFunction { t1:Recordable, t2:Boolean -> Pair(t1, t2)  })
+                            .takeUntil { it.second } // stop taking events once this flag is triggered
                             .map { it.first} // no longer care about stop flag, so map back to the data Event object
                             .doOnNext { filestream.writeSeparator() } // write data separator
                             .doOnNext { filestream.write(it.getRecordableString()) } // write data item
@@ -68,19 +64,10 @@ class FileRecorderImpl : FileRecorder {
 class FileRecordWriter(val file: File, val separator: String = ", ") : RecordWriter {
 
     private val bufferedWriter by lazy { file.bufferedWriter() }
-
     override fun getFileObject() = this.file
-
     override fun write(data: String) = bufferedWriter.write(data)
-
-    override fun writeSeparator() {
-        write(separator)
-    }
-
-    override fun close() {
-        bufferedWriter.flush()
-        bufferedWriter.close()
-    }
+    override fun writeSeparator() = write(separator)
+    override fun close() = bufferedWriter.close()
 }
 
 /**

@@ -11,15 +11,12 @@ import io.reactivex.Observable
 import io.reactivex.functions.BiFunction
 import io.reactivex.subjects.BehaviorSubject
 
-class TapSensor {
-
-    val tapOneRelay: Relay<MotionEvent> = PublishRelay.create()
-    val tapTwoRelay: Relay<MotionEvent> = PublishRelay.create()
+class TapSensor (val tapOneEvents: Observable<MotionEvent>, val tapTwoEvents: Observable<MotionEvent>) {
 
     fun tapEventPipeline( leftButtonId: Int, rightButtonId: Int): Flowable<TapData> {
         return Observable.merge(
-                createMotionToTapEventPipeline(leftButtonId, tapOneRelay),
-                createMotionToTapEventPipeline(rightButtonId, tapTwoRelay)
+                createMotionToTapEventPipeline(leftButtonId, tapOneEvents),
+                createMotionToTapEventPipeline(rightButtonId, tapTwoEvents)
         ).toFlowable(BackpressureStrategy.BUFFER)
     }
 
