@@ -6,6 +6,7 @@ import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.functions.BiFunction
 import io.reactivex.schedulers.Schedulers
+import timber.log.Timber
 import java.io.File
 
 interface FileRecorder {
@@ -51,7 +52,10 @@ class FileRecorderImpl : FileRecorder {
                 }
 
                 .doOnSuccess { it.write(envelope.footer) } // write file footer from envelope
-                .doOnSuccess { it.close() }
+                .doFinally {
+                    // Make sure we always close the file
+                    recordWriter.close()
+                }
                 .map { it.getFileObject() }
                 .map { RecordedFile(it) }
     }
