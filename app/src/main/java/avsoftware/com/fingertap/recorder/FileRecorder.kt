@@ -6,7 +6,6 @@ import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.functions.BiFunction
 import io.reactivex.schedulers.Schedulers
-import timber.log.Timber
 import java.io.File
 
 interface FileRecorder {
@@ -28,34 +27,38 @@ class FileRecorderImpl : FileRecorder {
 
     override fun writeToFile(recordable: Flowable<out Recordable>, recordWriter: RecordWriter, envelope: FileEnvelope, stopFlag: Observable<Boolean>): Single<RecordedFile> {
 
-        return Single.just(recordWriter)
-                .observeOn(Schedulers.io()) // requires IO scheduler to write to filesystem
+        // Events flow until stopFlag emits True
+        val stoppableEventStream = Flowable
+                .combineLatest(recordable, stopFlag.toFlowable(BackpressureStrategy.BUFFER), BiFunction { t1: Recordable, t2: Boolean -> Pair(t1, t2) })
+                .takeUntil{ it.second }
+                .map { it.first }
 
-                .doOnSuccess { it.write(envelope.header) } // write file header from envelope
+        return Single.just(recordWriter)
+
+                // requires IO scheduler to write to filesystem
+                .observeOn(Schedulers.io())
+
+                // write file header from envelope
+                .doOnSuccess { it.write(envelope.header) }
 
                 .flatMap { filestream ->
-                    recordable.take(1) // write the first element without a leading separator
+                    stoppableEventStream.take(1) // write the first element without a leading separator
                             .doOnNext { filestream.write(it.getRecordableString()) }
                             .ignoreElements().toSingleDefault(filestream)
                 }
 
                 .flatMap { filestream ->
-                    recordable.skip(1) // write all subsequent elements with a leading separator
-                            .withLatestFrom(stopFlag.toFlowable(BackpressureStrategy.BUFFER),
-                                    BiFunction { t1:Recordable, t2:Boolean -> Pair(t1, t2)  })
-                            .takeUntil { it.second } // stop taking events once this flag is triggered
-                            .map { it.first} // no longer care about stop flag, so map back to the data Event object
+                    stoppableEventStream.skip(1) // write all subsequent elements with a leading separator
                             .doOnNext { filestream.writeSeparator() } // write data separator
                             .doOnNext { filestream.write(it.getRecordableString()) } // write data item
                             .ignoreElements()
-                            .toSingleDefault(filestream) // output just the original FileRecordWriter Object so we can complete the file
+                            .toSingleDefault(filestream)
                 }
 
                 .doOnSuccess { it.write(envelope.footer) } // write file footer from envelope
-                .doFinally {
-                    // Make sure we always close the file
-                    recordWriter.close()
-                }
+                .doFinally { recordWriter.close() } // Make sure we always close the file
+
+                // emit Recorded File instance
                 .map { it.getFileObject() }
                 .map { RecordedFile(it) }
     }

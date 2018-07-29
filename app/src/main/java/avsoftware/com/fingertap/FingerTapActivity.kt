@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.view.LayoutInflater
 import android.view.MotionEvent
+import android.widget.Toast
 import avsoftware.com.fingertap.databinding.ActivityFingerTapBinding
 import com.jakewharton.rxbinding2.view.RxView
 import io.reactivex.Observable
@@ -46,6 +47,8 @@ class FingerTapActivity : AppCompatActivity() {
                         .doOnNext{ Timber.d("Recorded: $it")}
                         .doOnComplete{ Timber.d("Completed")}
                         .doOnError { Timber.e(it, "Failed") }
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .doOnComplete{ Toast.makeText(baseContext, "DONE", Toast.LENGTH_LONG).show() }
                         .subscribe()
         )
     }
