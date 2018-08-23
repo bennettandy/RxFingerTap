@@ -37,6 +37,9 @@ public class FingerTapMeasureUseCase {
     private final TapSensor mTapSensor;
     private final Accelerometer mAccelerometer;
 
+    /**
+     * Tap Data File Envelope
+     */
     private static final FileEnvelope tapDataEnvelope = new FileEnvelope("<ORKTaskResult: 0x1c4293d30; identifier: \"twoFingerTappingIntervalTask\"; results: (\n" +
                     "    <ORKStepResult: 0x1c0277d40; identifier: \"instruction\"; enabledAssistiveTechnology: None; results: ()>,\n" +
                     "    <ORKStepResult: 0x1c4666d80; identifier: \"instruction1.left\"; enabledAssistiveTechnology: None; results: ()>,\n" +
@@ -47,6 +50,9 @@ public class FingerTapMeasureUseCase {
                     "    <ORKStepResult: 0x1c4666f80; identifier: \"conclusion\"; enabledAssistiveTechnology: None; results: ()>\n" +
                     ")>\n");
 
+    /**
+     * Accelerometer Data File Envelope
+     */
     private static final FileEnvelope accelerometerDataEnvelope = new FileEnvelope("{ items: [", "] }");
 
     private static final String TAP_DATA_SEPARATOR = ", ";
@@ -60,9 +66,7 @@ public class FingerTapMeasureUseCase {
     public Flowable<RecordedFile> setUpProcessingPipeline(@NotNull File tapsOutputFile, @NotNull File accelerometerOutputFile, @NotNull ObservableInt countDownObservable, ObservableInt totalTaps){
         // Tap Events emitted from this pipeline
         Flowable<TapData> tapEvents = mTapSensor.tapEventPipeline(LEFT_TAP_ID, RIGHT_TAP_ID)
-                .doOnNext(tapData -> {
-                    Timber.d("event");
-                })
+                // increment tap counter for each tap event
                 .doOnNext(tapData -> totalTaps.set(totalTaps.get()+1))
                 .share();
 
@@ -72,20 +76,20 @@ public class FingerTapMeasureUseCase {
         // Timer Starts by taking the first tap event and emits true when the timer completes
         Observable<Boolean> stopFlag = tapEvents.take(1) // first tap should start the timer
                 .map( __ -> true)
-                .doOnNext(aBoolean -> {
-                    Timber.d("Start Count");
-                })
                 .flatMapSingle( aBoolean -> countDownTimer
-                        .toSingleDefault(true))
+                        .toSingleDefault(true)) // emit true on completion, this is the 'stop' event
                 .toObservable()
                 .startWith(false);
 
         // Accelerometer events
         Flowable<AccelerometerData> accelerometerEvents = mAccelerometer.getAccelerometerFlowable().throttleFirst(250, TimeUnit.MILLISECONDS);
 
+        // Create Recorder Pipelines for Tap Events and Accelerometer Events
+        // Both infinite streams, recording stops when stopFlag flips to true
         Single<RecordedFile> recordedTapsFile = createFileRecorderPipeline(tapEvents, tapsOutputFile, TAP_DATA_SEPARATOR, tapDataEnvelope, stopFlag);
         Single<RecordedFile> recordedAccelerometerFile = createFileRecorderPipeline(accelerometerEvents, accelerometerOutputFile, ACCELEROMETER_DATA_SEPARATOR, accelerometerDataEnvelope, stopFlag);
 
+        // Merge both singles into Flowable, emits recorded file info when recording completes
         return Single.merge(recordedTapsFile, recordedAccelerometerFile);
     }
 

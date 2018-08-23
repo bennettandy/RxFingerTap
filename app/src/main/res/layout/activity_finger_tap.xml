@@ -27,23 +27,26 @@
             />
 
         <TextView
+            style="@style/TextAppearance.AppCompat.Medium"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
-            android:text="@{ Integer.toString(viewModel.totalTaps) }"
+            android:text="@{String.format(@string/tap_counter_total_taps, viewModel.totalTaps)}"
             />
 
         <TextView
+            style="@style/TextAppearance.AppCompat.Medium"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
-            android:text="@{ Integer.toString(viewModel.countdownProgress) }"
+            android:text="@{String.format(@string/tap_counter_timer, viewModel.countdownProgress)}"
             />
 
         <ImageView
             android:id="@+id/tap_sensor_one"
             android:layout_width="100dp"
             android:layout_height="100dp"
+            android:layout_marginTop="30dp"
             android:clickable="true"
             android:focusable="true"
             android:background="@color/colorAccent"

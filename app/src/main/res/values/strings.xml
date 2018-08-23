@@ -3,4 +3,7 @@
 
     <string name="tap_header_right_hand">Tap the buttons using your RIGHT hand.</string>
     <string name="tap_header_left_hand">Tap the buttons using your LEFT hand.</string>
+
+    <string name="tap_counter_total_taps">Total Taps %d</string>
+    <string name="tap_counter_timer">Time remaining %d seconds</string>
 </resources>
