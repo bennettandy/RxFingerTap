@@ -7,13 +7,14 @@ import io.reactivex.BackpressureStrategy
 import io.reactivex.Flowable
 import io.reactivex.Observable
 import io.reactivex.functions.BiFunction
-import timber.log.Timber
 
 class TapSensor (val tapOneEvents: Observable<MotionEvent>, val tapTwoEvents: Observable<MotionEvent>) {
 
     fun tapEventPipeline( leftButtonId: Int, rightButtonId: Int): Flowable<TapData> {
         return Observable.merge(
+                // Events from Button One
                 createMotionToTapEventPipeline(leftButtonId, tapOneEvents),
+                // Events from Button Two
                 createMotionToTapEventPipeline(rightButtonId, tapTwoEvents)
         ).toFlowable(BackpressureStrategy.BUFFER)
     }
@@ -22,21 +23,21 @@ class TapSensor (val tapOneEvents: Observable<MotionEvent>, val tapTwoEvents: Ob
 
         val sharedMotionEvent = motionEvents.share();
 
-        // DOWN Event Time is Stored in currentTapTime
+        // Last DOWN Event Time is emitted
         val downEventTime: Observable<Long> = sharedMotionEvent
                 .filter { it.action == MotionEvent.ACTION_DOWN }
                 .map { System.currentTimeMillis() }
 
-        // UP Event is mapped to TapData instance - downTime property taken from currentTapTime
+        // UP Event is mapped to TapData instance - downTime taken from last Down Event
         return sharedMotionEvent.filter { it.action == MotionEvent.ACTION_UP }
-                .doOnNext { Timber.d("UP $it")}
                 .withLatestFrom(downEventTime, BiFunction { motion: MotionEvent, downTime: Long -> Pair(motion, downTime)  })
-                // construct TapData event from pair of Up event and Down Time
-                .map { TapData(buttonId, it.second.toFloat(), (SystemClock.currentThreadTimeMillis() - it.second).toFloat(), it.first.rawX, it.first.rawY) }
+                .map{
+                    with(it){
+                        TapData(buttonId, second.toFloat(), (SystemClock.currentThreadTimeMillis() - second).toFloat(), first.rawX, first.rawY)
+                    }
+                }
     }
 }
-
-class
 
 // CLASS to store tap data
 data class TapData(var iButton: Int, var fStartTime: Float, var fDuration: Float, var x: Float, var y: Float) : Recordable {

@@ -22,7 +22,6 @@ class Accelerometer(context: Context, sampleFrequencyUs: Int = SensorManager.SEN
                     AccelerometerData(values[0], values[1], values[2], timestamp)
                 }
             }
-            .share()
 }
 
 data class AccelerometerData(val x: Float, val y: Float, val z: Float, val timestamp: Long) : Recordable {
