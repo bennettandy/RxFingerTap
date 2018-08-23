@@ -25,6 +25,7 @@ import io.reactivex.Completable;
 import io.reactivex.Flowable;
 import io.reactivex.Observable;
 import io.reactivex.Single;
+import timber.log.Timber;
 
 public class FingerTapMeasureUseCase {
 
@@ -59,7 +60,11 @@ public class FingerTapMeasureUseCase {
     public Flowable<RecordedFile> setUpProcessingPipeline(@NotNull File tapsOutputFile, @NotNull File accelerometerOutputFile, @NotNull ObservableInt countDownObservable, ObservableInt totalTaps){
         // Tap Events emitted from this pipeline
         Flowable<TapData> tapEvents = mTapSensor.tapEventPipeline(LEFT_TAP_ID, RIGHT_TAP_ID)
-                .doOnNext(tapData -> totalTaps.set(totalTaps.get()+1)).share();
+                .doOnNext(tapData -> {
+                    Timber.d("event");
+                })
+                .doOnNext(tapData -> totalTaps.set(totalTaps.get()+1))
+                .share();
 
         // Stop Flag will stop file writers consuming further events and close their respective files
         Completable countDownTimer = createCountDownTimer(countDownObservable);
@@ -67,14 +72,16 @@ public class FingerTapMeasureUseCase {
         // Timer Starts by taking the first tap event and emits true when the timer completes
         Observable<Boolean> stopFlag = tapEvents.take(1) // first tap should start the timer
                 .map( __ -> true)
+                .doOnNext(aBoolean -> {
+                    Timber.d("Start Count");
+                })
                 .flatMapSingle( aBoolean -> countDownTimer
                         .toSingleDefault(true))
                 .toObservable()
-                .startWith(false)
-                .share();
+                .startWith(false);
 
         // Accelerometer events
-        Flowable<AccelerometerData> accelerometerEvents = mAccelerometer.getAccelerometerFlowable();
+        Flowable<AccelerometerData> accelerometerEvents = mAccelerometer.getAccelerometerFlowable().throttleFirst(250, TimeUnit.MILLISECONDS);
 
         Single<RecordedFile> recordedTapsFile = createFileRecorderPipeline(tapEvents, tapsOutputFile, TAP_DATA_SEPARATOR, tapDataEnvelope, stopFlag);
         Single<RecordedFile> recordedAccelerometerFile = createFileRecorderPipeline(accelerometerEvents, accelerometerOutputFile, ACCELEROMETER_DATA_SEPARATOR, accelerometerDataEnvelope, stopFlag);
@@ -86,10 +93,10 @@ public class FingerTapMeasureUseCase {
         FileRecorder recorder = new FileRecorderImpl();
 
         // customise file writer for data type
-        RecordWriter dataWriter = new FileRecordWriter(outputFile, dataSeparator);
+        RecordWriter dataWriter = new FileRecordWriter(outputFile);
 
         // construct file recorder pipeline
-        return recorder.writeToFile(dataEvents, dataWriter, fileEnvelope, stopFlag );
+        return recorder.writeToFile(dataEvents, dataWriter, fileEnvelope, dataSeparator, stopFlag );
     }
 
     /**

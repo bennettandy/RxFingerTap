@@ -6,12 +6,14 @@ import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.functions.BiFunction
 import io.reactivex.schedulers.Schedulers
+import timber.log.Timber
 import java.io.File
 
 interface FileRecorder {
     fun writeToFile(recordable: Flowable<out Recordable>,
                     recordWriter: RecordWriter,
                     envelope: FileEnvelope,
+                    separator: String = ", ",
                     stopFlag: Observable<Boolean> ): Single<RecordedFile>
 }
 
@@ -31,13 +33,23 @@ class FileRecorderImpl : FileRecorder {
     override fun writeToFile(recordable: Flowable<out Recordable>,
                              recordWriter: RecordWriter,
                              envelope: FileEnvelope,
+                             separator: String,
                              stopFlag: Observable<Boolean> ): Single<RecordedFile> {
 
         // Events flow until stopFlag emits True
         val stoppableEventStream = Flowable
-                .combineLatest(recordable, stopFlag.toFlowable(BackpressureStrategy.BUFFER), BiFunction { t1: Recordable, t2: Boolean -> Pair(t1, t2) })
+                .combineLatest(recordable, stopFlag
+                        .toFlowable(BackpressureStrategy.BUFFER), BiFunction { t1: Recordable, t2: Boolean -> Pair(t1, t2) })
+                .doOnNext({ t: Pair<Recordable, Boolean> -> Timber.d("%s"+t) })
                 .takeUntil{ it.second }
+                .doOnComplete { Timber.d("completed")}
                 .map { it.first }
+                .share()
+
+        // emits separators, initially an empty separator
+        val separatorStream = Flowable.just(separator)
+                .startWith("")
+                .doOnNext { Timber.d("Separator $it")}
 
         return Single.just(recordWriter)
 
@@ -45,18 +57,15 @@ class FileRecorderImpl : FileRecorder {
                 .observeOn(Schedulers.io())
 
                 // write file header from envelope
-                .doOnSuccess { it.write(envelope.header) }
+                .doOnSubscribe { recordWriter.write(envelope.header) }
 
                 .flatMap { filestream ->
-                    stoppableEventStream.take(1) // write the first element without a leading separator
-                            .doOnNext { filestream.write(it.getRecordableString()) }
-                            .ignoreElements().toSingleDefault(filestream)
-                }
-
-                .flatMap { filestream ->
-                    stoppableEventStream.skip(1) // write all subsequent elements with a leading separator
-                            .doOnNext { filestream.writeSeparator() } // write data separator
-                            .doOnNext { filestream.write(it.getRecordableString()) } // write data item
+                    stoppableEventStream
+                            .doOnNext { Timber.d("Event $it")}
+                            .withLatestFrom(separatorStream, BiFunction { recordable: Recordable, sep: String -> Pair(recordable, sep)  })
+                            .doOnNext { filestream.write(it.second) } // write data separator
+                            .doOnNext { filestream.write(it.first.getRecordableString()) } // write data item
+                            .doOnNext { Timber.d("Write: $it")}
                             .ignoreElements()
                             .toSingleDefault(filestream)
                 }
@@ -74,12 +83,11 @@ class FileRecorderImpl : FileRecorder {
  * Groups the file instance with buffered writer
  * More readable than using Pair<File,BufferedWriter>
  */
-class FileRecordWriter(val file: File, val separator: String = ", ") : RecordWriter {
+class FileRecordWriter(val file: File) : RecordWriter {
 
     private val bufferedWriter by lazy { file.bufferedWriter() }
     override fun getFileObject() = this.file
     override fun write(data: String) = bufferedWriter.write(data)
-    override fun writeSeparator() = write(separator)
     override fun close() = bufferedWriter.close()
 }
 
@@ -88,7 +96,6 @@ class FileRecordWriter(val file: File, val separator: String = ", ") : RecordWri
  */
 interface RecordWriter {
     fun write(data: String)
-    fun writeSeparator()
     fun getFileObject(): File
     fun close()
 }

@@ -11,11 +11,6 @@
             name="viewModel"
             type="avsoftware.com.fingertap.FingerTapViewModel" />
 
-        <variable
-            name="activity"
-            type="avsoftware.com.fingertap.FingerTapActivity" />
-
-
     </data>
 
     <LinearLayout
@@ -49,6 +44,8 @@
             android:id="@+id/tap_sensor_one"
             android:layout_width="100dp"
             android:layout_height="100dp"
+            android:clickable="true"
+            android:focusable="true"
             android:background="@color/colorAccent"
             />
 
@@ -56,6 +53,8 @@
             android:id="@+id/tap_sensor_two"
             android:layout_width="100dp"
             android:layout_height="100dp"
+            android:clickable="true"
+            android:focusable="true"
             android:background="@color/colorPrimary"
             />
 
