@@ -106,7 +106,7 @@ public class FileRecorderTest extends RxBaseTest {
         //verify(mockRecordWriter, times(14999)).writeSeparator(); // one less than the number of items
         verify(mockRecordWriter, times(1)).write("header123"); // one header
         verify(mockRecordWriter, times(1)).write("footer321"); // one footer
-        verify(mockRecordWriter, times(6)).write(any()); // total write events
+        verify(mockRecordWriter, times(6)).write(any()); // total write events, smaller due to throttling
         verify(mockRecordWriter, times(1)).close(); // close called once
         verify(mockRecordWriter, times(1)).getFileObject(); // get File Object called once
 

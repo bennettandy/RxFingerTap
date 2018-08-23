@@ -6,7 +6,6 @@ import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.functions.BiFunction
 import io.reactivex.schedulers.Schedulers
-import timber.log.Timber
 import java.io.File
 
 interface FileRecorder {
@@ -40,16 +39,13 @@ class FileRecorderImpl : FileRecorder {
         val stoppableEventStream = Flowable
                 .combineLatest(recordable, stopFlag
                         .toFlowable(BackpressureStrategy.BUFFER), BiFunction { t1: Recordable, t2: Boolean -> Pair(t1, t2) })
-                .doOnNext({ t: Pair<Recordable, Boolean> -> Timber.d("%s"+t) })
                 .takeUntil{ it.second }
-                .doOnComplete { Timber.d("completed")}
                 .map { it.first }
                 .share()
 
         // emits separators, initially an empty separator
         val separatorStream = Flowable.just(separator)
                 .startWith("")
-                .doOnNext { Timber.d("Separator $it")}
 
         return Single.just(recordWriter)
 
@@ -61,11 +57,9 @@ class FileRecorderImpl : FileRecorder {
 
                 .flatMap { filestream ->
                     stoppableEventStream
-                            .doOnNext { Timber.d("Event $it")}
                             .withLatestFrom(separatorStream, BiFunction { recordable: Recordable, sep: String -> Pair(recordable, sep)  })
                             .doOnNext { filestream.write(it.second) } // write data separator
                             .doOnNext { filestream.write(it.first.getRecordableString()) } // write data item
-                            .doOnNext { Timber.d("Write: $it")}
                             .ignoreElements()
                             .toSingleDefault(filestream)
                 }

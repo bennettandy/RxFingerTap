@@ -3,14 +3,10 @@ package avsoftware.com.fingertap.sensors
 import android.os.SystemClock
 import android.view.MotionEvent
 import avsoftware.com.fingertap.recorder.Recordable
-import com.jakewharton.rxrelay2.PublishRelay
-import com.jakewharton.rxrelay2.Relay
 import io.reactivex.BackpressureStrategy
-import io.reactivex.Completable
 import io.reactivex.Flowable
 import io.reactivex.Observable
 import io.reactivex.functions.BiFunction
-import io.reactivex.subjects.BehaviorSubject
 import timber.log.Timber
 
 class TapSensor (val tapOneEvents: Observable<MotionEvent>, val tapTwoEvents: Observable<MotionEvent>) {
@@ -24,30 +20,19 @@ class TapSensor (val tapOneEvents: Observable<MotionEvent>, val tapTwoEvents: Ob
 
     private fun createMotionToTapEventPipeline( buttonId: Int, motionEvents: Observable<MotionEvent> ): Observable<TapData> {
 
-        // Fixme: simplify this, removing Subject
-        val currentTapTime: BehaviorSubject<Long> = BehaviorSubject.createDefault(0L)
-        //val startTime: BehaviorSubject<Long> = BehaviorSubject.createDefault(0L)
+        val sharedMotionEvent = motionEvents.share();
 
-        //val startTime = Observable.just(System.currentTimeMillis()).cacheWithInitialCapacity(1);
-
-        // Down Event Time is Stored in currentTapTime
-        val downEventTime: Completable = motionEvents
-                .doOnNext { Timber.d("MotionEvent $it") }
+        // DOWN Event Time is Stored in currentTapTime
+        val downEventTime: Observable<Long> = sharedMotionEvent
                 .filter { it.action == MotionEvent.ACTION_DOWN }
                 .map { System.currentTimeMillis() }
-                .doOnNext { Timber.d("Down $it")}
-                .doOnNext { currentTapTime.onNext(it) }
-                .ignoreElements()
 
-        // Up Event is mapped to TapData instance - downTime property taken from currentTapTime
-        val upEvents = motionEvents.filter { it.action == MotionEvent.ACTION_UP }
+        // UP Event is mapped to TapData instance - downTime property taken from currentTapTime
+        return sharedMotionEvent.filter { it.action == MotionEvent.ACTION_UP }
                 .doOnNext { Timber.d("UP $it")}
-                .withLatestFrom(currentTapTime, BiFunction { motion: MotionEvent, downTime: Long -> Pair(motion, downTime)  })
+                .withLatestFrom(downEventTime, BiFunction { motion: MotionEvent, downTime: Long -> Pair(motion, downTime)  })
                 // construct TapData event from pair of Up event and Down Time
                 .map { TapData(buttonId, it.second.toFloat(), (SystemClock.currentThreadTimeMillis() - it.second).toFloat(), it.first.rawX, it.first.rawY) }
-
-
-        return Observable.merge(downEventTime.toObservable(), upEvents)
     }
 }
 
