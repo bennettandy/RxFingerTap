@@ -12,6 +12,7 @@ import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
+import timber.log.Timber
 
 class FingerTapActivity : AppCompatActivity() {
 
@@ -49,7 +50,8 @@ class FingerTapActivity : AppCompatActivity() {
         disposable.add(
                 recorderPipeline
                         .observeOn(AndroidSchedulers.mainThread())
-                        .doOnComplete{ Toast.makeText(baseContext, "DONE", Toast.LENGTH_LONG).show() }
+                        .doOnNext { Timber.d("Recorded: ${it.file})") }
+                        .doOnComplete{ Toast.makeText(this, "DONE", Toast.LENGTH_LONG).show() }
                         .subscribeOn( Schedulers.computation())
                         .subscribe()
         )

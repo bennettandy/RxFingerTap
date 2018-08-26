@@ -41,7 +41,6 @@ class FileRecorderImpl : FileRecorder {
                         .toFlowable(BackpressureStrategy.BUFFER), BiFunction { t1: Recordable, t2: Boolean -> Pair(t1, t2) })
                 .takeUntil{ it.second }
                 .map { it.first }
-                .share()
 
         // emits separators, initially an empty separator
         val separatorStream = Flowable.just(separator)

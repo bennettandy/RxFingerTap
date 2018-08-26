@@ -7,15 +7,16 @@ import io.reactivex.BackpressureStrategy
 import io.reactivex.Flowable
 import io.reactivex.Observable
 import io.reactivex.functions.BiFunction
+import io.reactivex.schedulers.Schedulers
 
 class TapSensor (val tapOneEvents: Observable<MotionEvent>, val tapTwoEvents: Observable<MotionEvent>) {
 
     fun tapEventPipeline( leftButtonId: Int, rightButtonId: Int): Flowable<TapData> {
         return Observable.merge(
                 // Events from Button One
-                createMotionToTapEventPipeline(leftButtonId, tapOneEvents),
+                createMotionToTapEventPipeline(leftButtonId, tapOneEvents.observeOn(Schedulers.computation())),
                 // Events from Button Two
-                createMotionToTapEventPipeline(rightButtonId, tapTwoEvents)
+                createMotionToTapEventPipeline(rightButtonId, tapTwoEvents.observeOn(Schedulers.computation()))
         ).toFlowable(BackpressureStrategy.BUFFER)
     }
 
